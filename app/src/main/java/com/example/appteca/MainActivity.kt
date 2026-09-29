@@ -4,75 +4,55 @@ import android.content.Intent
 import android.os.Bundle
 import android.widget.Button
 import android.widget.EditText
+import androidx.activity.viewModels
 import androidx.appcompat.app.AppCompatActivity
 import androidx.core.widget.addTextChangedListener
 import androidx.recyclerview.widget.LinearLayoutManager
 import androidx.recyclerview.widget.RecyclerView
 
 class MainActivity : AppCompatActivity() {
+    private val vm: AppTecaViewModel by viewModels()
     private lateinit var adapter: AppAdapter
-    private var soloFavoritas = false
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         setContentView(R.layout.activity_main)
 
-        if (savedInstanceState != null) {
-            soloFavoritas = savedInstanceState.getBoolean("soloFavoritas", false)
-        }
-
         adapter = AppAdapter(
-            Catalogo.apps,
+            emptyList(),
             onAppClick = { app ->
                 val intent = Intent(this, DetalleActivity::class.java)
                 intent.putExtra("appId", app.id)
                 startActivity(intent)
             },
-            onFavoritoClick = { app ->
-                app.esFavorita = !app.esFavorita
-                aplicarFiltros()
-            }
+            onFavoritoClick = { app -> vm.alternarFavorita(app) }
         )
 
         val rv = findViewById<RecyclerView>(R.id.rvApps)
         rv.layoutManager = LinearLayoutManager(this)
         rv.adapter = adapter
 
-        findViewById<EditText>(R.id.etBuscar).addTextChangedListener {
-            aplicarFiltros()
+        findViewById<EditText>(R.id.etBuscar).addTextChangedListener { texto ->
+            vm.buscar(texto.toString())
         }
 
         findViewById<Button>(R.id.btnSoloFav).setOnClickListener {
-            soloFavoritas = !soloFavoritas
-            aplicarFiltros()
+            vm.alternarModo()
         }
 
-        aplicarFiltros()
-    }
+        // ── LAS suscripciones: el único lugar donde el estado toca la pantalla ──
+        vm.listaVisible.observe(this) { lista ->
+            adapter.actualizarLista(lista)
+        }
 
-    override fun onSaveInstanceState(outState: Bundle) {
-        super.onSaveInstanceState(outState)
-        outState.putBoolean("soloFavoritas", soloFavoritas)
+        vm.modoSoloFavoritas.observe(this) { activo ->
+            findViewById<Button>(R.id.btnSoloFav).text =
+                if (activo) "★ Solo favoritas" else "☆ Todas"
+        }
     }
 
     override fun onResume() {
         super.onResume()
-        aplicarFiltros()
-    }
-
-    private fun aplicarFiltros() {
-        val q = findViewById<EditText>(R.id.etBuscar).text.toString().trim()
-        var lista: List<App> = Catalogo.apps
-        if (q.isNotEmpty()) {
-            lista = lista.filter {
-                it.nombre.contains(q, ignoreCase = true) || it.categoria.contains(q, ignoreCase = true)
-            }
-        }
-        if (soloFavoritas) {
-            lista = lista.filter { it.esFavorita }
-        }
-        adapter.actualizarLista(lista)
-        findViewById<Button>(R.id.btnSoloFav).text =
-            if (soloFavoritas) "★ Solo favoritas" else "☆ Todas"
+        vm.refrescar()
     }
 }
