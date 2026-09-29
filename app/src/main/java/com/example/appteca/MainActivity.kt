@@ -40,7 +40,6 @@ class MainActivity : AppCompatActivity() {
             vm.alternarModo()
         }
 
-        // ── LAS suscripciones: el único lugar donde el estado toca la pantalla ──
         vm.listaVisible.observe(this) { lista ->
             adapter.actualizarLista(lista)
         }

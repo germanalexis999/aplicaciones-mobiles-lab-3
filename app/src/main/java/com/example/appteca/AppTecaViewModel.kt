@@ -6,11 +6,9 @@ import androidx.lifecycle.MutableLiveData
 import androidx.lifecycle.ViewModel
 
 class AppTecaViewModel : ViewModel() {
-    // ── El estado interno (antes: variables de la Activity) ──
     private var query = ""
     private var soloFavoritas = false
 
-    // ── El estado publicado (antes: no existía — cada listener redibujaba) ──
     private val _listaVisible = MutableLiveData<List<App>>()
     val listaVisible: LiveData<List<App>> = _listaVisible
 
@@ -22,7 +20,6 @@ class AppTecaViewModel : ViewModel() {
         aplicarFiltros()
     }
 
-    // ── Los eventos que la pantalla puede avisar ──
     fun buscar(texto: String) {
         query = texto.trim()
         aplicarFiltros()
@@ -42,7 +39,6 @@ class AppTecaViewModel : ViewModel() {
         aplicarFiltros()
     }
 
-    // ── LA función, mudada casi textual — con una diferencia decisiva ──
     private fun aplicarFiltros() {
         var lista: List<App> = Catalogo.apps
         if (query.isNotEmpty()) {
@@ -53,7 +49,7 @@ class AppTecaViewModel : ViewModel() {
         if (soloFavoritas) {
             lista = lista.filter { it.esFavorita }
         }
-        _listaVisible.value = lista // publica — no dibuja
+        _listaVisible.value = lista
         _modoSoloFavoritas.value = soloFavoritas
     }
 
