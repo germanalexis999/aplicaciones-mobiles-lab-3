@@ -1,19 +1,22 @@
 package com.example.appteca
 
 import android.util.Log
-import androidx.lifecycle.LiveData
-import androidx.lifecycle.MutableLiveData
 import androidx.lifecycle.ViewModel
+import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.flow.StateFlow
 
 class AppTecaViewModel : ViewModel() {
     private var query = ""
     private var soloFavoritas = false
 
-    private val _listaVisible = MutableLiveData<List<App>>()
-    val listaVisible: LiveData<List<App>> = _listaVisible
+    private val _listaVisible = MutableStateFlow<List<App>>(emptyList())
+    val listaVisible: StateFlow<List<App>> = _listaVisible
 
-    private val _modoSoloFavoritas = MutableLiveData(false)
-    val modoSoloFavoritas: LiveData<Boolean> = _modoSoloFavoritas
+    private val _modoSoloFavoritas = MutableStateFlow(false)
+    val modoSoloFavoritas: StateFlow<Boolean> = _modoSoloFavoritas
+
+    private val _appSeleccionada = MutableStateFlow<App?>(null)
+    val appSeleccionada: StateFlow<App?> = _appSeleccionada
 
     init {
         Log.d("VIDA", "ViewModel → creado (${hashCode()})")
@@ -31,8 +34,20 @@ class AppTecaViewModel : ViewModel() {
     }
 
     fun alternarFavorita(app: App) {
-        app.esFavorita = !app.esFavorita
+        val nuevas = Catalogo.apps.map {
+            if (it.id == app.id) it.copy(esFavorita = !it.esFavorita) else it
+        }
+        Catalogo.apps.clear()
+        Catalogo.apps.addAll(nuevas)
         aplicarFiltros()
+    }
+
+    fun seleccionar(app: App) {
+        _appSeleccionada.value = app
+    }
+
+    fun volverALista() {
+        _appSeleccionada.value = null
     }
 
     fun refrescar() {
@@ -40,7 +55,7 @@ class AppTecaViewModel : ViewModel() {
     }
 
     private fun aplicarFiltros() {
-        var lista: List<App> = Catalogo.apps
+        var lista: List<App> = Catalogo.apps.toList()
         if (query.isNotEmpty()) {
             lista = lista.filter {
                 it.nombre.contains(query, ignoreCase = true) || it.categoria.contains(query, ignoreCase = true)
@@ -51,9 +66,13 @@ class AppTecaViewModel : ViewModel() {
         }
         _listaVisible.value = lista
         _modoSoloFavoritas.value = soloFavoritas
+
+        _appSeleccionada.value = _appSeleccionada.value?.let { sel ->
+            Catalogo.apps.find { it.id == sel.id }
+        }
     }
 
     override fun onCleared() {
-        Log.d("VIDA", "ViewModel → onCleared (destruido de verdad)")
+        Log.d("VIDA", "ViewModel → onCleared")
     }
 }
